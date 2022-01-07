@@ -34,6 +34,13 @@ export async function metricsGet(request, env, ctx) {
     ...env.ipfsGateways.map((gw) => [
       `nftstorage_gateway_total_requests{gateway="${gw}"} ${metricsPerGw[gw].totalReqCount}`,
     ]),
+    `# HELP nftstorage_gateway_avg_response_time Average response time.`,
+    `# TYPE nftstorage_gateway_avg_response_time gauge`,
+    ...env.ipfsGateways.map((gw) => [
+      `nftstorage_gateway_total_response_time{gateway="${gw}"} ${
+        metricsPerGw[gw].totalResponseTime || 0
+      }`,
+    ]),
     `# HELP nftstorage_gateway_total_failed Total failed requests.`,
     `# TYPE nftstorage_gateway_total_failed counter`,
     ...env.ipfsGateways.map((gw) => [
@@ -44,15 +51,8 @@ export async function metricsGet(request, env, ctx) {
     ...env.ipfsGateways.map((gw) => [
       `nftstorage_gateway_total_faster{gateway="${gw}"} ${metricsPerGw[gw].fasterReqCount}`,
     ]),
-    `# HELP nftstorage_gateway_avg_response_time Average response time.`,
-    `# TYPE nftstorage_gateway_avg_response_time gauge`,
-    ...env.ipfsGateways.map((gw) => [
-      `nftstorage_gateway_avg_response_time{gateway="${gw}"} ${
-        metricsPerGw[gw].averageResponseTime || 0
-      }`,
-    ]),
-    `HELP nftstorage_gateway_requests_per_time`,
-    `TYPE nftstorage_gateway_requests_per_time histogram`,
+    `# HELP nftstorage_gateway_requests_per_time`,
+    `# TYPE nftstorage_gateway_requests_per_time histogram`,
     ...histogram.map((t) => {
       return env.ipfsGateways
         .map((gw) => [

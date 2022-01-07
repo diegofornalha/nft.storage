@@ -8,13 +8,15 @@ import pkg from '../package.json'
  * @property {string} VERSION
  * @property {string} ENV
  * @property {string} [SENTRY_DSN]
- * @property {Object} METRICS8
- * @property {Object} CIDS1
+ * @property {number} [REQUEST_TIMEOUT]
+ * @property {Object} METRICS
+ * @property {Object} CIDSTRACKER
  *
  * @typedef {Object} EnvTransformed
  * @property {Array<string>} ipfsGateways
  * @property {Object} metricsDurable
- * @property {Object} cidsDurable
+ * @property {Object} cidsTrackerDurable
+ * @property {number} REQUEST_TIMEOUT
  * @property {Toucan} [sentry]
  *
  * @typedef {EnvInput & EnvTransformed} Env
@@ -27,8 +29,9 @@ import pkg from '../package.json'
 export function envAll(request, env) {
   env.sentry = getSentry(request, env)
   env.ipfsGateways = JSON.parse(env.IPFS_GATEWAYS)
-  env.metricsDurable = env.METRICS8
-  env.cidsDurable = env.CIDS1
+  env.metricsDurable = env.METRICS
+  env.cidsTrackerDurable = env.CIDSTRACKER
+  env.REQUEST_TIMEOUT = env.REQUEST_TIMEOUT || 20000
 }
 
 /**
@@ -45,7 +48,7 @@ function getSentry(request, env) {
   return new Toucan({
     request,
     dsn: env.SENTRY_DSN,
-    allowedHeaders: ['user-agent', 'x-client'],
+    allowedHeaders: ['user-agent'],
     allowedSearchParams: /(.*)/,
     debug: false,
     environment: env.ENV || 'dev',

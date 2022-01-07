@@ -6,17 +6,16 @@ import { gatewayGet } from './gateway.js'
 import { metricsGet } from './metrics.js'
 
 // Export Durable Object namespace from the root module.
-export { Metrics8 } from './durable-objects/metrics.js'
-export { Cids1 } from './durable-objects/cids.js'
+export { Metrics11 } from './durable-objects/metrics.js'
+export { CidsTracker0 } from './durable-objects/cids.js'
 
-import { addCorsHeaders, corsOptions, withCorsHeaders } from './cors.js'
+import { addCorsHeaders, withCorsHeaders } from './cors.js'
 import { errorHandler } from './error-handler.js'
 import { envAll } from './env.js'
 
 const router = Router()
 
 router
-  .options('*', corsOptions)
   .all('*', envAll)
   .get('/metrics', withCorsHeaders(metricsGet))
   .get('*', withCorsHeaders(gatewayGet))

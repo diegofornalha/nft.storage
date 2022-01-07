@@ -7,9 +7,10 @@ import { normalizeCid } from '../utils/cid.js'
  */
 
 /**
- * Durable Object for keeping CID state.
+ * Durable Object for tracking CIDs fetching state.
+ * For each CID requested, a list of the gateways that successfully fetched it are stored.
  */
-export class Cids1 {
+export class CidsTracker0 {
   constructor(state) {
     this.state = state
   }

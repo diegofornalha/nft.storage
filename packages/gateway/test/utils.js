@@ -1,6 +1,6 @@
 import { Miniflare } from 'miniflare'
 
-export function getMf() {
+export function getMiniflare() {
   return new Miniflare({
     // Autoload configuration from `.env`, `package.json` and `wrangler.toml`
     envPath: true,
@@ -13,12 +13,12 @@ export function getMf() {
     wranglerConfigEnv: 'test',
     modules: true,
     durableObjects: {
-      METRICS8: 'Metrics8',
-      CIDS1: 'Cids1',
+      METRICS: 'Metrics11',
+      CIDSTRACKER: 'CidsTracker0',
     },
   })
 }
 
-export function getCIDs() {
-  return 'CIDS1'
+export function getCIDsTracker() {
+  return 'CIDSTRACKER'
 }

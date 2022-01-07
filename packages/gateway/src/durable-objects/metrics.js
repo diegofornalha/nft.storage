@@ -1,10 +1,10 @@
 /**
  * @typedef {Object} GatewayMetrics
  * @property {number} totalReqCount total number of performed requests
+ * @property {number} totalResponseTime total response time of the rquests
  * @property {number} failedReqCount total number of requests failed
  * @property {number} fasterReqCount number of performed requests where faster
  * @property {Record<string, number>} responseTimeHistogram
- * @property {number} [averageResponseTime]
  *
  * @typedef {Object} ResponseStats
  * @property {string} url gateway URL
@@ -16,7 +16,7 @@
 /**
  * Durable Object for keeping Metrics state.
  */
-export class Metrics8 {
+export class Metrics11 {
   constructor(state, env) {
     this.state = state
     /** @type {Array<string>} */
@@ -31,13 +31,12 @@ export class Metrics8 {
       const storedMetricsPerGw = await Promise.all(
         this.ipfsGateways.map(async (gw) => {
           /** @type {GatewayMetrics} */
-          const value = (await this.state.storage.get(gw)) || {
-            ...defaultCounter,
-          }
+          const value =
+            (await this.state.storage.get(gw)) || createMetricsTracker()
 
           return {
             gw,
-            value,
+            value: { ...value },
           }
         })
       )
@@ -55,12 +54,12 @@ export class Metrics8 {
     switch (url.pathname) {
       case '/update':
         const data = await request.json()
-        // Get updated Metrics
-        const updatedMetrics = this._getUpdatedMetrics(data)
+        // Updated Metrics
+        this._updatedMetrics(data)
         // Save updated Metrics
         await Promise.all(
           this.ipfsGateways.map((gw) =>
-            this.state.storage.put(gw, updatedMetrics.get(gw))
+            this.state.storage.put(gw, this.gatewayMetrics.get(gw))
           )
         )
         return new Response()
@@ -79,37 +78,20 @@ export class Metrics8 {
   /**
    * @param {ResponseStats[]} responseStats
    */
-  _getUpdatedMetrics(responseStats) {
-    const updatedMetrics = this.gatewayMetrics
-
+  _updatedMetrics(responseStats) {
     responseStats.forEach((stats) => {
-      const gwMetrics = {
-        ...updatedMetrics.get(stats.url),
-      }
+      const gwMetrics = this.gatewayMetrics.get(stats.url)
 
       if (!stats.ok) {
         // Update request count
         gwMetrics.totalReqCount += 1
         gwMetrics.failedReqCount += 1
-
-        // Update metrics
-        updatedMetrics.set(stats.url, gwMetrics)
-        return updatedMetrics
+        return
       }
 
-      // Update average response time
-      if (!gwMetrics.averageResponseTime) {
-        gwMetrics.averageResponseTime = stats.responseTime
-      } else {
-        gwMetrics.averageResponseTime = updateAverageValue(
-          stats.responseTime,
-          gwMetrics.averageResponseTime,
-          gwMetrics.totalReqCount
-        )
-      }
-
-      // Update request count
+      // Update request count and response time sum
       gwMetrics.totalReqCount += 1
+      gwMetrics.totalResponseTime += stats.responseTime
 
       // Update faster count if appropriate
       if (stats.faster) {
@@ -126,25 +108,20 @@ export class Metrics8 {
         histogram[histogram.length - 1]
       gwHistogram[histogramCandidate] += 1
       gwMetrics.responseTimeHistogram = gwHistogram
-
-      // Update metrics
-      updatedMetrics.set(stats.url, gwMetrics)
     })
-
-    return updatedMetrics
   }
-}
-
-function updateAverageValue(newValue, oldAverage, numberOfValues) {
-  return (oldAverage * numberOfValues + newValue) / (numberOfValues + 1)
 }
 
 export const histogram = [300, 500, 750, 1000, 1500, 2000, 3000, 5000, 10000]
 
-const defaultCounter = {
-  totalReqCount: 0,
-  failedReqCount: 0,
-  fasterReqCount: 0,
-  responseTimeHistogram: Object.fromEntries(histogram.map((h) => [h, 0])),
-  averageResponseTime: undefined,
+function createMetricsTracker() {
+  const h = [...histogram].map((h) => [h, 0])
+
+  return {
+    totalReqCount: 0,
+    totalResponseTime: 0,
+    failedReqCount: 0,
+    fasterReqCount: 0,
+    responseTimeHistogram: Object.fromEntries(h),
+  }
 }

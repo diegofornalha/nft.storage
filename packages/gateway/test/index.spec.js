@@ -1,11 +1,11 @@
 import test from 'ava'
 
-import { getMf } from './utils.js'
+import { getMiniflare } from './utils.js'
 
 test.beforeEach((t) => {
   // Create a new Miniflare environment for each test
   t.context = {
-    mf: getMf(),
+    mf: getMiniflare(),
   }
 })
 

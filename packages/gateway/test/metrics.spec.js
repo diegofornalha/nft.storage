@@ -1,12 +1,12 @@
 import test from 'ava'
 
 import { gateways } from './constants.js'
-import { getMf } from './utils.js'
+import { getMiniflare } from './utils.js'
 
 test.beforeEach((t) => {
   // Create a new Miniflare environment for each test
   t.context = {
-    mf: getMf(),
+    mf: getMiniflare(),
   }
 })
 
@@ -18,9 +18,12 @@ test('Gets Metrics content when empty state', async (t) => {
 
   gateways.forEach((gw) => {
     t.is(metricsResponse.includes(`_total_requests{gateway="${gw}"} 0`), true)
+    t.is(
+      metricsResponse.includes(`_total_response_time{gateway="${gw}"}`),
+      true
+    )
     t.is(metricsResponse.includes(`_total_failed{gateway="${gw}"} 0`), true)
     t.is(metricsResponse.includes(`_total_faster{gateway="${gw}"} 0`), true)
-    t.is(metricsResponse.includes(`_avg_response_time{gateway="${gw}"}`), true)
     t.is(
       metricsResponse.includes(`_requests_per_time{gateway="${gw}",le=`),
       true
