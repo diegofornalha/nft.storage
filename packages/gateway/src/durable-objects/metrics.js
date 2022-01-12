@@ -1,7 +1,7 @@
 /**
  * @typedef {Object} GatewayMetrics
  * @property {number} totalReqCount total number of performed requests
- * @property {number} totalResponseTime total response time of the rquests
+ * @property {number} totalResponseTime total response time of the requests
  * @property {number} failedReqCount total number of requests failed
  * @property {number} fasterReqCount number of performed requests where faster
  * @property {Record<string, number>} responseTimeHistogram
@@ -13,10 +13,13 @@
  * @property {boolean} [faster]
  */
 
+// Key to track total time for fast gateway to respond
+const TOTAL_FAST_RESPONSE_TIME = 'totalFastResponseTime'
+
 /**
  * Durable Object for keeping Metrics state.
  */
-export class Metrics11 {
+export class Metrics12 {
   constructor(state, env) {
     this.state = state
     /** @type {Array<string>} */
@@ -24,10 +27,11 @@ export class Metrics11 {
 
     // `blockConcurrencyWhile()` ensures no requests are delivered until initialization completes.
     this.state.blockConcurrencyWhile(async () => {
+      // Get state and initialize if not existing
       /** @type {Map<string, GatewayMetrics>} */
       this.gatewayMetrics = new Map()
 
-      // Get state and initialize if not existing
+      // Gateway related metrics
       const storedMetricsPerGw = await Promise.all(
         this.ipfsGateways.map(async (gw) => {
           /** @type {GatewayMetrics} */
@@ -44,6 +48,10 @@ export class Metrics11 {
       storedMetricsPerGw.forEach(({ gw, value }) => {
         this.gatewayMetrics.set(gw, value)
       })
+
+      // Total response time
+      this.totalFastResponseTime =
+        (await this.state.storage.get(TOTAL_FAST_RESPONSE_TIME)) || 0
     })
   }
 
@@ -57,16 +65,23 @@ export class Metrics11 {
         // Updated Metrics
         this._updatedMetrics(data)
         // Save updated Metrics
-        await Promise.all(
-          this.ipfsGateways.map((gw) =>
+        await Promise.all([
+          ...this.ipfsGateways.map((gw) =>
             this.state.storage.put(gw, this.gatewayMetrics.get(gw))
-          )
-        )
+          ),
+          this.state.storage.put(
+            TOTAL_FAST_RESPONSE_TIME,
+            this.totalFastResponseTime
+          ),
+        ])
         return new Response()
       case '/metrics':
-        const resp = {}
+        const resp = {
+          totalFastResponseTime: this.totalFastResponseTime,
+          ipfsGateways: {},
+        }
         this.ipfsGateways.forEach((url) => {
-          resp[url] = this.gatewayMetrics.get(url)
+          resp.ipfsGateways[url] = this.gatewayMetrics.get(url)
         })
 
         return new Response(JSON.stringify(resp))
@@ -96,6 +111,7 @@ export class Metrics11 {
       // Update faster count if appropriate
       if (stats.faster) {
         gwMetrics.fasterReqCount += 1
+        this.totalFastResponseTime += stats.responseTime
       }
 
       // Update histogram

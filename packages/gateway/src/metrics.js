@@ -4,6 +4,12 @@ import { METRICS_CACHE_MAX_AGE } from './constants.js'
 import { histogram } from './durable-objects/metrics.js'
 
 /**
+ * @typedef MetricsDurable
+ * @property {number} totalFastResponseTime
+ * @property {Record<string,import('./durable-objects/metrics').GatewayMetrics>} ipfsGateways
+ */
+
+/**
  * Retrieve metrics in prometheus exposition format.
  * https://prometheus.io/docs/instrumenting/exposition_formats/
  * @param {Request} request
@@ -25,38 +31,49 @@ export async function metricsGet(request, env, ctx) {
   const stub = env.metricsDurable.get(id)
 
   const stubResponse = await stub.fetch(request)
-  /** @type {Record<string,import('./durable-objects/metrics').GatewayMetrics>} */
-  const metricsPerGw = await stubResponse.json()
+  /** @type {MetricsDurable} */
+  const metricsDurable = await stubResponse.json()
 
   const metrics = [
+    `# HELP nftstorage_gateway_total_response_time Average response time.`,
+    `# TYPE nftstorage_gateway_total_response_time gauge`,
+    ...env.ipfsGateways.map((gw) => [
+      `nftstorage_gateway_total_response_time{gateway="${gw}"} ${
+        metricsDurable.ipfsGateways[gw].totalResponseTime || 0
+      }`,
+    ]),
+    `# HELP nftstorage_gateway_total_fastest_response_time Total requests performed.`,
+    `# TYPE nftstorage_gateway_total_fastest_response_time counter`,
+    `nftstorage_gateway_total_fastest_response_time ${metricsDurable.totalFastResponseTime}`,
     `# HELP nftstorage_gateway_total_requests Total requests performed.`,
     `# TYPE nftstorage_gateway_total_requests counter`,
     ...env.ipfsGateways.map((gw) => [
-      `nftstorage_gateway_total_requests{gateway="${gw}"} ${metricsPerGw[gw].totalReqCount}`,
+      `nftstorage_gateway_total_requests{gateway="${gw}"} ${metricsDurable.ipfsGateways[gw].totalReqCount}`,
     ]),
-    `# HELP nftstorage_gateway_avg_response_time Average response time.`,
-    `# TYPE nftstorage_gateway_avg_response_time gauge`,
+    `# HELP nftstorage_gateway_total_successful_requests Total successful requests.`,
+    `# TYPE nftstorage_gateway_total_successful_requests counter`,
     ...env.ipfsGateways.map((gw) => [
-      `nftstorage_gateway_total_response_time{gateway="${gw}"} ${
-        metricsPerGw[gw].totalResponseTime || 0
+      `nftstorage_gateway_total_successful_requests{gateway="${gw}"} ${
+        metricsDurable.ipfsGateways[gw].totalReqCount -
+        metricsDurable.ipfsGateways[gw].failedReqCount
       }`,
     ]),
-    `# HELP nftstorage_gateway_total_failed Total failed requests.`,
-    `# TYPE nftstorage_gateway_total_failed counter`,
+    `# HELP nftstorage_gateway_total_failed_requests Total failed requests.`,
+    `# TYPE nftstorage_gateway_total_failed_requests counter`,
     ...env.ipfsGateways.map((gw) => [
-      `nftstorage_gateway_total_failed{gateway="${gw}"} ${metricsPerGw[gw].failedReqCount}`,
+      `nftstorage_gateway_total_failed_requests{gateway="${gw}"} ${metricsDurable.ipfsGateways[gw].failedReqCount}`,
     ]),
-    `# HELP nftstorage_gateway_total_faster Total requests with faster response.`,
-    `# TYPE nftstorage_gateway_total_faster counter`,
+    `# HELP nftstorage_gateway_total_faster_requests Total requests with faster response.`,
+    `# TYPE nftstorage_gateway_total_faster_requests counter`,
     ...env.ipfsGateways.map((gw) => [
-      `nftstorage_gateway_total_faster{gateway="${gw}"} ${metricsPerGw[gw].fasterReqCount}`,
+      `nftstorage_gateway_total_faster_requests{gateway="${gw}"} ${metricsDurable.ipfsGateways[gw].fasterReqCount}`,
     ]),
     `# HELP nftstorage_gateway_requests_per_time`,
     `# TYPE nftstorage_gateway_requests_per_time histogram`,
     ...histogram.map((t) => {
       return env.ipfsGateways
         .map((gw) => [
-          `nftstorage_gateway_requests_per_time{gateway="${gw}",le="${t}"} ${metricsPerGw[gw].responseTimeHistogram[t]}`,
+          `nftstorage_gateway_requests_per_time{gateway="${gw}",le="${t}"} ${metricsDurable.ipfsGateways[gw].responseTimeHistogram[t]}`,
         ])
         .join('\n')
     }),

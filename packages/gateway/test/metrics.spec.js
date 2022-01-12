@@ -16,6 +16,10 @@ test('Gets Metrics content when empty state', async (t) => {
   const response = await mf.dispatchFetch('http://localhost:8787/metrics')
   const metricsResponse = await response.text()
 
+  t.is(
+    metricsResponse.includes('nftstorage_gateway_total_fastest_response_time'),
+    true
+  )
   gateways.forEach((gw) => {
     t.is(metricsResponse.includes(`_total_requests{gateway="${gw}"} 0`), true)
     t.is(

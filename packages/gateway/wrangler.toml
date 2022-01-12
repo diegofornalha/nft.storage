@@ -17,7 +17,7 @@ dir = "dist"
 main = "index.mjs"
 
 [durable_objects]
-bindings = [{name = "METRICS", class_name = "Metrics11"}, {name = "CIDSTRACKER", class_name = "CidsTracker0"}]
+bindings = [{name = "METRICS", class_name = "Metrics12"}, {name = "CIDSTRACKER", class_name = "CidsTracker0"}]
 
 # PROD!
 [env.production]
@@ -35,14 +35,14 @@ route = "*gateway-staging.nft.storage/*"
 vars = { IPFS_GATEWAYS = "[\"https://ipfs.io\", \"https://cf-ipfs.com\", \"https://nft-storage.mypinata.cloud/\"]" }
 
 [env.staging.durable_objects]
-bindings = [{name = "METRICS", class_name = "Metrics11"}, {name = "CIDSTRACKER", class_name = "CidsTracker0"}]
+bindings = [{name = "METRICS", class_name = "Metrics12"}, {name = "CIDSTRACKER", class_name = "CidsTracker0"}]
 
 [env.test]
 workers_dev = true
 vars = { IPFS_GATEWAYS = "[\"http://localhost:9081\", \"http://localhost:9082\"]" }
 
 [env.test.durable_objects]
-bindings = [{name = "METRICS", class_name = "Metrics11"}, {name = "CIDSTRACKER", class_name = "CidsTracker0"}]
+bindings = [{name = "METRICS", class_name = "Metrics12"}, {name = "CIDSTRACKER", class_name = "CidsTracker0"}]
 
 [env.vsantos]
 workers_dev = true
@@ -50,7 +50,7 @@ account_id = "7ec0b7cf2ec201b2580374e53ba5f37b"
 vars = { IPFS_GATEWAYS = "[\"https://ipfs.io\"]" }
 
 [env.vsantos.durable_objects]
-bindings = [{name = "METRICS", class_name = "Metrics11"}, {name = "CIDSTRACKER", class_name = "CidsTracker0"}]
+bindings = [{name = "METRICS", class_name = "Metrics12"}, {name = "CIDSTRACKER", class_name = "CidsTracker0"}]
 
 [[migrations]]
 tag = "v1" # Should be unique for each entry
@@ -93,3 +93,7 @@ deleted_classes = ["Metrics9"]
 tag = "v11" # Should be unique for each entry
 new_classes = ["Metrics11"]
 deleted_classes = ["Metrics10"]
+[[migrations]]
+tag = "v12" # Should be unique for each entry
+new_classes = ["Metrics12"]
+deleted_classes = ["Metrics11"]
